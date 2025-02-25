@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'maindash.dart';
 
-void main() {
-  runApp(Login());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const Login());
 }
 
 class Login extends StatelessWidget {
-  const Login({super.key});
+  const Login({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      home: const LoginPage(),
     );
   }
 }
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -29,23 +30,23 @@ class LoginPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('images/SFgroup.png', height: 100), // Replace with actual image
-              SizedBox(height: 20),
-              TextField(
+              Image.asset('images/SFgroup.png', height: 100),
+              const SizedBox(height: 20),
+              const TextField(
                 decoration: InputDecoration(
                   labelText: 'ID',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 10),
-              TextField(
+              const SizedBox(height: 10),
+              const TextField(
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pushReplacement(
@@ -55,14 +56,16 @@ class LoginPage extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                 ),
-                child: Text('Login', style: TextStyle(color: Colors.white)),
+                child: const Text('Login',
+                    style: TextStyle(color: Colors.white)),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextButton(
                 onPressed: () {},
-                child: Text('Forgot password?'),
+                child: const Text('Forgot password?'),
               ),
             ],
           ),

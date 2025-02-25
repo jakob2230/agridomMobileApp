@@ -1,31 +1,43 @@
 import 'package:camera/camera.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
 
 class TimeInHandler {
-  CameraController? _cameraController;
+  CameraController? cameraController;
   List<CameraDescription>? cameras;
 
   Future<void> initializeCamera() async {
-    cameras = await availableCameras();
-    if (cameras != null && cameras!.isNotEmpty) {
-      _cameraController = CameraController(cameras![0], ResolutionPreset.medium);
-      await _cameraController!.initialize();
+    try {
+      cameras = await availableCameras();
+      if (cameras != null && cameras!.isNotEmpty) {
+        cameraController =
+            CameraController(cameras![0], ResolutionPreset.medium);
+        await cameraController!.initialize();
+      }
+    } catch (e) {
+      debugPrint("Error initializing camera: $e");
     }
   }
 
-  Future<Map<String, String>> captureTimeIn() async {
-    String timeIn = DateFormat('hh:mm:ss a').format(DateTime.now());
+  // Capture an image and return its file path
+  Future<String> captureTimeIn() async {
     String imagePath = "";
-
-    if (_cameraController != null && _cameraController!.value.isInitialized) {
-      try {
-        final XFile file = await _cameraController!.takePicture();
-        imagePath = file.path; // Save the image path
-      } catch (e) {
-        print("Error taking picture: $e");
-      }
+    if (cameraController == null ||
+        !cameraController!.value.isInitialized) {
+      debugPrint("Camera is not initialized!");
+      return imagePath;
     }
+    try {
+      final XFile file = await cameraController!.takePicture();
+      imagePath = file.path;
+      debugPrint("Picture saved at: $imagePath");
+    } catch (e) {
+      debugPrint("Error taking picture: $e");
+    }
+    return imagePath;
+  }
 
-    return {"time": timeIn, "image": imagePath};
+  void disposeCamera() {
+    cameraController?.dispose();
   }
 }
