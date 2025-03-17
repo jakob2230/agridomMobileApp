@@ -1,0 +1,2 @@
+C:/Users/Jakob Maraguinot/Desktop/agridomApp-master-TEST/android/app/.cxx/RelWithDebInfo/dt2b1523/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/Jakob Maraguinot/Desktop/agridomApp-master-TEST/android/app/.cxx/RelWithDebInfo/dt2b1523/arm64-v8a/CMakeFiles/rebuild_cache.dir
