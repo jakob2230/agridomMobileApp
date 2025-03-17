@@ -155,12 +155,15 @@ def submit_leave_request(request):
     end_date_str = data.get("endDate")
     leave_days = data.get("leaveDays")
     reason = data.get("reason")
+    # New field for payment option; default to "with pay" if not provided
+    payment_option = data.get("payment_option", "with pay")
 
     if not all([employee_id, leave_type, start_date_str, end_date_str, leave_days]):
         return JsonResponse({"success": False, "message": "Missing required fields"})
     
     try:
-        # Convert the date strings into date objects
+        # Convert the date strings into date objects (assuming the format is YYYY-MM-DD)
+        from datetime import datetime
         start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
     except Exception as e:
@@ -175,7 +178,8 @@ def submit_leave_request(request):
             end_date=end_date_obj,
             leave_days=leave_days,
             reason=reason,
-            status="Pending"
+            status="Pending",
+            payment_option=payment_option  # Save the payment option here
         )
         return JsonResponse({
             "success": True,
@@ -187,13 +191,14 @@ def submit_leave_request(request):
                 "leaveDays": leave_request.leave_days,
                 "reason": leave_request.reason,
                 "status": leave_request.status,
+                "paymentOption": leave_request.payment_option
             }
         })
     except CustomerUser.DoesNotExist:
         return JsonResponse({"success": False, "message": "User not found"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
-    
+
 
 @csrf_exempt
 def leave_requests_view(request):

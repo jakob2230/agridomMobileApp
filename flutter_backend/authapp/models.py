@@ -75,14 +75,25 @@ class TimeEntry(models.Model):
 
 
 class LeaveRequest(models.Model):
+    PAYMENT_CHOICES = (
+    ("with pay", "With Pay"),
+    ("w/o pay", "Without Pay"),
+)
     user = models.ForeignKey(CustomerUser, on_delete=models.CASCADE)
     leave_type = models.CharField(max_length=50)
     start_date = models.DateField()
     end_date = models.DateField()
     leave_days = models.IntegerField()
     reason = models.TextField(null=True, blank=True)
-    status = models.CharField(max_length=20, default="Pending")  # Default status is Pending
+    status = models.CharField(max_length=20, default="Pending")
+    payment_option = models.CharField(
+        max_length=20,
+        choices=PAYMENT_CHOICES,
+        default="with pay"
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.surname} - {self.leave_type} ({self.status})"
+    
+
