@@ -40,8 +40,8 @@ class CustomerUser(models.Model):
     if_first_login = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True, blank=True)
-
-    
+    leave_credits = models.IntegerField(default=16)
+    sick_leave_credits = models.IntegerField(default=10)
 
     def __str__(self):
         return self.employee_id
@@ -78,7 +78,7 @@ class LeaveRequest(models.Model):
     PAYMENT_CHOICES = (
     ("with pay", "With Pay"),
     ("w/o pay", "Without Pay"),
-)
+    )
     user = models.ForeignKey(CustomerUser, on_delete=models.CASCADE)
     leave_type = models.CharField(max_length=50)
     start_date = models.DateField()

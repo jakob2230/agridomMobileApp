@@ -155,15 +155,12 @@ def submit_leave_request(request):
     end_date_str = data.get("endDate")
     leave_days = data.get("leaveDays")
     reason = data.get("reason")
-    # New field for payment option; default to "with pay" if not provided
     payment_option = data.get("payment_option", "with pay")
 
     if not all([employee_id, leave_type, start_date_str, end_date_str, leave_days]):
         return JsonResponse({"success": False, "message": "Missing required fields"})
     
     try:
-        # Convert the date strings into date objects (assuming the format is YYYY-MM-DD)
-        from datetime import datetime
         start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
     except Exception as e:
@@ -171,6 +168,22 @@ def submit_leave_request(request):
     
     try:
         user = CustomerUser.objects.get(employee_id=employee_id)
+        
+        # Check for sufficient leave credits based on leave type.
+        if leave_type.lower() == "sick leave":
+            if user.sick_leave_credits < 1:
+                return JsonResponse({"success": False, "message": "Insufficient sick leave credits."})
+        else:
+            if user.leave_credits < 1:
+                return JsonResponse({"success": False, "message": "Insufficient leave credits."})
+        
+        # Deduct one credit per submission
+        if leave_type.lower() == "sick leave":
+            user.sick_leave_credits -= 1
+        else:
+            user.leave_credits -= 1
+        user.save()
+        
         leave_request = LeaveRequest.objects.create(
             user=user,
             leave_type=leave_type,
@@ -179,7 +192,7 @@ def submit_leave_request(request):
             leave_days=leave_days,
             reason=reason,
             status="Pending",
-            payment_option=payment_option  # Save the payment option here
+            payment_option=payment_option
         )
         return JsonResponse({
             "success": True,
@@ -198,7 +211,6 @@ def submit_leave_request(request):
         return JsonResponse({"success": False, "message": "User not found"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
-
 
 @csrf_exempt
 def leave_requests_view(request):
@@ -220,4 +232,3 @@ def leave_requests_view(request):
         return JsonResponse({"success": True, "leaveRequests": data})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
-

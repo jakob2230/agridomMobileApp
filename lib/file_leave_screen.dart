@@ -14,7 +14,7 @@ class FileLeaveScreen extends StatefulWidget {
 }
 
 class _FileLeaveScreenState extends State<FileLeaveScreen> {
-  int remainingLeave = 15; 
+  int remainingLeave = 16; 
   int totalLeaveCredits = 16;
   
   int remainingSickLeave = 10; 
@@ -80,55 +80,54 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
     }
   }
 
-Future<void> submitLeave() async {
-  // Prepare leave request payload
-  final Map<String, dynamic> payload = {
-    "employee_id": widget.employeeId,
-    "leaveType": selectedLeaveType,
-    "startDate": DateFormat('yyyy-MM-dd').format(startDate!),
-    "endDate": DateFormat('yyyy-MM-dd').format(endDate!),
-    "leaveDays": leaveDays,
-    "reason": _reasonController.text,
-  };
+  Future<void> submitLeave() async {
+    // Prepare leave request payload
+    final Map<String, dynamic> payload = {
+      "employee_id": widget.employeeId,
+      "leaveType": selectedLeaveType,
+      "startDate": DateFormat('yyyy-MM-dd').format(startDate!),
+      "endDate": DateFormat('yyyy-MM-dd').format(endDate!),
+      "leaveDays": leaveDays,
+      "reason": _reasonController.text,
+    };
 
-  try {
-    final response = await http.post(
-      Uri.parse("http://127.0.0.1:8000/api/submit-leave/"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(payload),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse("http://127.0.0.1:8000/api/submit-leave/"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data["success"]) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"])),
-        );
-        // Extract the new leave request from the response.
-        Map<String, dynamic> newLeaveRequest = data["leaveRequest"];
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LeaveApprovalDashboard(newLeaveRequest: newLeaveRequest),
-          ),
-        );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data["success"]) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"])),
+          );
+          // Extract the new leave request from the response.
+          Map<String, dynamic> newLeaveRequest = data["leaveRequest"];
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LeaveApprovalDashboard(newLeaveRequest: newLeaveRequest),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"])),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"])),
+          SnackBar(content: Text("Error: ${response.statusCode}")),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${response.statusCode}")),
+        SnackBar(content: Text("Submission failed: $e")),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Submission failed: $e")),
-    );
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -289,11 +288,11 @@ Future<void> submitLeave() async {
                       startDate != null &&
                       endDate != null &&
                       leavePaymentOption != null) {
-                    // Check leave credits
+                    // For every submission, deduct only 1 credit regardless of the number of leave days.
                     if (selectedLeaveType == "Sick Leave") {
-                      if (remainingSickLeave >= leaveDays) {
+                      if (remainingSickLeave >= 1) {
                         setState(() {
-                          remainingSickLeave -= leaveDays;
+                          remainingSickLeave -= 1;
                         });
                         submitLeave();
                       } else {
@@ -302,9 +301,9 @@ Future<void> submitLeave() async {
                         );
                       }
                     } else {
-                      if (remainingLeave >= leaveDays) {
+                      if (remainingLeave >= 1) {
                         setState(() {
-                          remainingLeave -= leaveDays;
+                          remainingLeave -= 1;
                         });
                         submitLeave();
                       } else {
