@@ -1,11 +1,10 @@
-// leave_approval_dashboard.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class LeaveApprovalDashboard extends StatefulWidget {
-  const LeaveApprovalDashboard({super.key});
+  final Map<String, dynamic>? newLeaveRequest;
+  const LeaveApprovalDashboard({Key? key, this.newLeaveRequest}) : super(key: key);
 
   @override
   _LeaveApprovalDashboardState createState() => _LeaveApprovalDashboardState();
@@ -17,24 +16,28 @@ class _LeaveApprovalDashboardState extends State<LeaveApprovalDashboard> {
   @override
   void initState() {
     super.initState();
-    fetchLeaveApplications();
+    if (widget.newLeaveRequest != null) {
+      // Display only the newly submitted (pending) leave request.
+      leaveApplications = [widget.newLeaveRequest!];
+    } else {
+      // Optionally, fetch from backend if no new request was passed.
+      fetchLeaveApplications();
+    }
   }
 
   Future<void> fetchLeaveApplications() async {
     try {
-      final response = await http.get(
-        Uri.parse("http://127.0.0.1:8000/api/leave-requests/"),
-      );
+      final response = await http.get(Uri.parse("http://127.0.0.1:8000/api/leave-requests/"));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
           leaveApplications = List<Map<String, dynamic>>.from(data["leaveRequests"]);
         });
       } else {
-        // Handle error
+        // Handle error if needed.
       }
     } catch (e) {
-      // Handle error
+      // Handle error if needed.
     }
   }
 
@@ -53,7 +56,7 @@ class _LeaveApprovalDashboardState extends State<LeaveApprovalDashboard> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Header with logo and title
+            // Header with logo and title.
             Center(
               child: Column(
                 children: [
@@ -67,24 +70,27 @@ class _LeaveApprovalDashboardState extends State<LeaveApprovalDashboard> {
               ),
             ),
             const SizedBox(height: 20),
-            // List of leave applications with their status
+            // Display leave requests in a list.
             Expanded(
               child: ListView.builder(
                 itemCount: leaveApplications.length,
                 itemBuilder: (context, index) {
                   final app = leaveApplications[index];
+                  // Choose color based on status.
                   Color statusColor = app['status'] == 'Approved'
                       ? Colors.green
                       : (app['status'] == 'Rejected' ? Colors.red : Colors.orange);
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     child: ListTile(
-                      title: Text(app['leaveType']),
+                      title: Text(app['leaveType'] ?? 'N/A'),
                       subtitle: Text('Dates: ${app['startDate']} - ${app['endDate']}'),
                       trailing: Text(
-                        app['status'],
+                        app['status'] ?? 'Pending',
                         style: TextStyle(
-                            color: statusColor, fontWeight: FontWeight.bold),
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   );

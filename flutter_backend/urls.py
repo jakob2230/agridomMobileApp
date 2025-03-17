@@ -1,3 +1,4 @@
+# urls.py/flutter_backend
 from django.urls import path
 from django.contrib import admin
 from django.views.generic import RedirectView
@@ -16,7 +17,9 @@ urlpatterns = [
     path('api/attendance/', views.attendance_list_view, name='api_attendance'),
     path('api/time-out/', views.time_out_view, name='api_time_out'),
     path('api/submit-leave/', views.submit_leave_request, name='api_submit_leave'),
-    
+    path('api/leave-requests/', views.leave_requests_view, name='api_leave_requests'),
+
+
     # Admin route
     path('admin/', admin.site.urls),
 ]

@@ -1,3 +1,4 @@
+# urls.py/authapp
 from django.urls import path
 from . import views
 from django.contrib import admin

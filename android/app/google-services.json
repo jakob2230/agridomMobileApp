@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "316435683535",
+    "project_id": "agriddomtimekeeping",
+    "storage_bucket": "agriddomtimekeeping.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:316435683535:android:8d9c7322e40f28a5f2bfba",
+        "android_client_info": {
+          "package_name": "com.example.mobileapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3JM8i7T369ZXAIR4CvgVlpjigcpq8yM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

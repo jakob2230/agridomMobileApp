@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'drawer_widget.dart'; // Make sure this file exports LeaveApprovalDashboard
+
+enum LeavePaymentOption { withPay, withoutPay }
 
 class FileLeaveScreen extends StatefulWidget {
   final String employeeId;
@@ -12,13 +15,15 @@ class FileLeaveScreen extends StatefulWidget {
 }
 
 class _FileLeaveScreenState extends State<FileLeaveScreen> {
-  int remainingLeave = 15; // Regular leave credits
+  int remainingLeave = 15; 
   int totalLeaveCredits = 16;
   
-  int remainingSickLeave = 10; // Sick leave credits
+  int remainingSickLeave = 10; 
   int totalSickLeave = 10;
   
   String? selectedLeaveType;
+  LeavePaymentOption? leavePaymentOption;
+  
   DateTime? startDate;
   DateTime? endDate;
   int leaveDays = 0;
@@ -35,7 +40,6 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
     super.dispose();
   }
 
-  // Function to select a date
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -69,7 +73,7 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
           endDate = picked;
           _endDateController.text = DateFormat.yMMMd().format(picked);
         }
-        // Calculate leave duration
+        // Calculate total leave days
         if (startDate != null && endDate != null) {
           leaveDays = endDate!.difference(startDate!).inDays + 1;
         }
@@ -77,48 +81,55 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
     }
   }
 
-  // Function to submit leave to the backend
-  Future<void> submitLeave() async {
-    // Prepare leave request payload
-    final Map<String, dynamic> payload = {
-      "employee_id": widget.employeeId,
-      "leaveType": selectedLeaveType,
-      "startDate": DateFormat('yyyy-MM-dd').format(startDate!), // Only date
-      "endDate": DateFormat('yyyy-MM-dd').format(endDate!),     // Only date
-      "leaveDays": leaveDays,
-      "reason": _reasonController.text,
-    };
+Future<void> submitLeave() async {
+  // Prepare leave request payload
+  final Map<String, dynamic> payload = {
+    "employee_id": widget.employeeId,
+    "leaveType": selectedLeaveType,
+    "startDate": DateFormat('yyyy-MM-dd').format(startDate!),
+    "endDate": DateFormat('yyyy-MM-dd').format(endDate!),
+    "leaveDays": leaveDays,
+    "reason": _reasonController.text,
+  };
 
-    try {
-      final response = await http.post(
-        Uri.parse("http://127.0.0.1:8000/api/submit-leave/"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(payload),
-      );
+  try {
+    final response = await http.post(
+      Uri.parse("http://127.0.0.1:8000/api/submit-leave/"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data["success"]) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data["message"])),
-          );
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data["message"])),
-          );
-        }
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data["success"]) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data["message"])),
+        );
+        // Extract the new leave request from the response.
+        Map<String, dynamic> newLeaveRequest = data["leaveRequest"];
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LeaveApprovalDashboard(newLeaveRequest: newLeaveRequest),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${response.statusCode}")),
+          SnackBar(content: Text(data["message"])),
         );
       }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission failed: $e")),
+        SnackBar(content: Text("Error: ${response.statusCode}")),
       );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Submission failed: $e")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +147,7 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Centered Logo & Leave Balance Information
+            // Centered Logo & Leave Balances
             Center(
               child: Column(
                 children: [
@@ -144,12 +155,20 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                   const SizedBox(height: 10),
                   Text(
                     "Leave Credit score: $remainingLeave/$totalLeaveCredits",
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: const TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.bold, 
+                      color: Colors.red,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     "Sick Leave Credit: $remainingSickLeave/$totalSickLeave",
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: const TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.bold, 
+                      color: Colors.red,
+                    ),
                   ),
                 ],
               ),
@@ -172,6 +191,37 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                 border: OutlineInputBorder(),
                 hintText: "Choose Leave Type",
               ),
+            ),
+            const SizedBox(height: 15),
+            // Payment Option
+            const Text("Select Payment Option:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<LeavePaymentOption>(
+                    title: const Text("Leave with pay"),
+                    value: LeavePaymentOption.withPay,
+                    groupValue: leavePaymentOption,
+                    onChanged: (LeavePaymentOption? value) {
+                      setState(() {
+                        leavePaymentOption = value;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<LeavePaymentOption>(
+                    title: const Text("Leave w/o pay"),
+                    value: LeavePaymentOption.withoutPay,
+                    groupValue: leavePaymentOption,
+                    onChanged: (LeavePaymentOption? value) {
+                      setState(() {
+                        leavePaymentOption = value;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 15),
             // Leave Start Date
@@ -235,8 +285,12 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                 ),
                 onPressed: () {
-                  if (selectedLeaveType != null && startDate != null && endDate != null) {
-                    // If Sick Leave is selected, ensure there is sufficient sick leave credit
+                  // Basic validation
+                  if (selectedLeaveType != null &&
+                      startDate != null &&
+                      endDate != null &&
+                      leavePaymentOption != null) {
+                    // Check leave credits
                     if (selectedLeaveType == "Sick Leave") {
                       if (remainingSickLeave >= leaveDays) {
                         setState(() {
@@ -249,7 +303,6 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                         );
                       }
                     } else {
-                      // For other leave types, ensure there is sufficient regular leave credit
                       if (remainingLeave >= leaveDays) {
                         setState(() {
                           remainingLeave -= leaveDays;
@@ -272,6 +325,23 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Export LeaveApprovalDashboard widget
+class LeaveApprovalDashboard extends StatelessWidget {
+  final Map<String, dynamic> newLeaveRequest;
+
+  const LeaveApprovalDashboard({Key? key, required this.newLeaveRequest}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Leave Approval Dashboard')),
+      body: Center(
+        child: Text('New Leave Request: ${newLeaveRequest.toString()}'),
       ),
     );
   }

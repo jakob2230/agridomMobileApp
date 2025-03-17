@@ -1,15 +1,12 @@
 import json
+import logging
+from datetime import datetime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import login
-from .models import CustomerUser, LeaveRequest
 from django.utils import timezone
-from .models import CustomerUser, TimeEntry
-import logging
-from .models import TimeEntry
-from django.utils import timezone
-
+from .models import CustomerUser, LeaveRequest, TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,6 @@ def login_view(request):
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "Invalid JSON"})
     
-    # Retrieve credentials from request body using keys 'username' and 'password'
     employee_id = data.get("username")
     pin = data.get("password")
     
@@ -32,18 +28,14 @@ def login_view(request):
         return JsonResponse({"success": False, "message": "Missing credentials"})
     
     try:
-        # Check if the user exists and is active
         user = CustomerUser.objects.get(employee_id=employee_id)
         if not user.is_active:
             return JsonResponse({"success": False, "message": "This account is inactive"})
         
-        # Try to authenticate using the provided PIN
         auth_result = CustomerUser.authenticate_by_pin(employee_id, pin)
-        if (auth_result):
+        if auth_result:
             user = auth_result if isinstance(auth_result, CustomerUser) else auth_result["user"]
-            login(request, user)  # Establish the session if needed
-
-            # Return a JSON response with the user's name included
+            login(request, user)
             return JsonResponse({
                 "success": True,
                 "message": "Login successful",
@@ -55,7 +47,6 @@ def login_view(request):
             return JsonResponse({"success": False, "message": "Incorrect PIN"})
     except CustomerUser.DoesNotExist:
         return JsonResponse({"success": False, "message": "Employee ID not found"})
-
 
 @csrf_exempt
 def time_in_view(request):
@@ -69,11 +60,10 @@ def time_in_view(request):
     
     employee_id = data.get("employee_id")
     image_path = data.get("image")
-    location = data.get("location")  # New: get location from request
+    location = data.get("location")
 
     try:
         user = CustomerUser.objects.get(employee_id=employee_id)
-        # Create a new time entry including location
         entry = TimeEntry.objects.create(
             user=user, 
             time_in=timezone.now(), 
@@ -106,10 +96,9 @@ def time_out_view(request):
         if not employee_id:
             return JsonResponse({"success": False, "message": "Employee ID is required"})
 
-        # Find today's time entry for this employee
         today = timezone.now().date()
         time_entry = TimeEntry.objects.filter(
-            user__employee_id=employee_id,  # Changed from employee to user
+            user__employee_id=employee_id,
             time_in__date=today,
             time_out__isnull=True
         ).first()
@@ -120,7 +109,6 @@ def time_out_view(request):
                 "message": "No active time entry found for today"
             })
 
-        # Record time out
         time_entry.time_out = timezone.now()
         time_entry.save()
 
@@ -131,7 +119,7 @@ def time_out_view(request):
         })
 
     except Exception as e:
-        print(f"Error in time_out_view: {str(e)}")  # Add debug print
+        logger.error(f"Error in time_out_view: {str(e)}")
         return JsonResponse({"success": False, "message": str(e)})
 
 def attendance_list_view(request):
@@ -151,7 +139,6 @@ def attendance_list_view(request):
         logger.error(f"Error fetching attendance: {e}")
         return JsonResponse({"success": False, "message": "Error fetching attendance"})
 
-
 @csrf_exempt
 def submit_leave_request(request):
     if request.method != "POST":
@@ -164,28 +151,68 @@ def submit_leave_request(request):
     
     employee_id = data.get("employee_id")
     leave_type = data.get("leaveType")
-    start_date = data.get("startDate")
-    end_date = data.get("endDate")
+    start_date_str = data.get("startDate")
+    end_date_str = data.get("endDate")
     leave_days = data.get("leaveDays")
     reason = data.get("reason")
 
-    if not all([employee_id, leave_type, start_date, end_date, leave_days]):
+    if not all([employee_id, leave_type, start_date_str, end_date_str, leave_days]):
         return JsonResponse({"success": False, "message": "Missing required fields"})
     
     try:
+        # Convert the date strings into date objects
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    except Exception as e:
+        return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD."})
+    
+    try:
         user = CustomerUser.objects.get(employee_id=employee_id)
-        # Create the leave request and save it with default "Pending" status
         leave_request = LeaveRequest.objects.create(
             user=user,
             leave_type=leave_type,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_obj,
+            end_date=end_date_obj,
             leave_days=leave_days,
             reason=reason,
             status="Pending"
         )
-        return JsonResponse({"success": True, "message": "Leave request submitted successfully!"})
+        return JsonResponse({
+            "success": True,
+            "message": "Leave request submitted successfully!",
+            "leaveRequest": {
+                "leaveType": leave_request.leave_type,
+                "startDate": leave_request.start_date.strftime("%Y-%m-%d"),
+                "endDate": leave_request.end_date.strftime("%Y-%m-%d"),
+                "leaveDays": leave_request.leave_days,
+                "reason": leave_request.reason,
+                "status": leave_request.status,
+            }
+        })
     except CustomerUser.DoesNotExist:
         return JsonResponse({"success": False, "message": "User not found"})
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)})
+    
+
+@csrf_exempt
+def leave_requests_view(request):
+    if request.method != "GET":
+        return JsonResponse({"success": False, "message": "Only GET requests are allowed"})
+    try:
+        # Fetch all leave requests; you can modify this to filter per user if needed.
+        leave_requests = LeaveRequest.objects.all().order_by("-submitted_at")
+        data = []
+        for leave in leave_requests:
+            data.append({
+                "leaveType": leave.leave_type,
+                "startDate": leave.start_date.strftime("%Y-%m-%d"),
+                "endDate": leave.end_date.strftime("%Y-%m-%d"),
+                "leaveDays": leave.leave_days,
+                "reason": leave.reason,
+                "status": leave.status,
+            })
+        return JsonResponse({"success": True, "leaveRequests": data})
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)})
+

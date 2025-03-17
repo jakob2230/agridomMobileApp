@@ -11,20 +11,20 @@ import 'drawer_widget.dart';
 
 class MainDash extends StatefulWidget {
   final String fullName;
-  final String employeeId; // Add this line
+  final String employeeId;
 
   const MainDash({
-    super.key, 
+    Key? key,
     required this.fullName,
-    required this.employeeId, // Add this line
-  });
+    required this.employeeId,
+  }) : super(key: key);
 
   @override
   State<MainDash> createState() => _MainDashState();
 }
 
 class _MainDashState extends State<MainDash> {
-  TimeInHandler timeInHandler = TimeInHandler();
+  final TimeInHandler timeInHandler = TimeInHandler();
   List<Map<String, String>> attendanceList = [];
   String currentTime = "";
   String currentDate = "";
@@ -35,7 +35,7 @@ class _MainDashState extends State<MainDash> {
     super.initState();
     initializeCamera();
     updateTime();
-    fetchAttendanceList(); // Fetch attendance on initialization
+    fetchAttendanceList();
   }
 
   Future<void> initializeCamera() async {
@@ -66,15 +66,11 @@ class _MainDashState extends State<MainDash> {
 
   Future<void> fetchAttendanceList() async {
     try {
-      final response = await http.get(
-        Uri.parse("http://127.0.0.1:8000/api/attendance/"),
-      );
-
+      final response = await http.get(Uri.parse("http://127.0.0.1:8000/api/attendance/"));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data["success"]) {
           setState(() {
-            // Convert the dynamic Map to Map<String, String>
             attendanceList = (data["attendance"] as List).map((item) => {
               "name": item["name"]?.toString() ?? "",
               "time_in": item["time_in"]?.toString() ?? "",
@@ -102,13 +98,12 @@ class _MainDashState extends State<MainDash> {
 
   Future<void> handleTimeIn() async {
     try {
-      // Check if user already has an entry for today
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       bool hasEntryToday = attendanceList.any((entry) {
         String entryTimeIn = entry["time_in"] ?? "";
         return entry["name"] == widget.fullName &&
-               entryTimeIn.isNotEmpty &&
-               entryTimeIn.contains(today);
+            entryTimeIn.isNotEmpty &&
+            entryTimeIn.contains(today);
       });
 
       if (hasEntryToday) {
@@ -118,37 +113,30 @@ class _MainDashState extends State<MainDash> {
         return;
       }
 
-      // Get the current location first
       String currentLocation = await getCurrentLocation();
-      
-      // Capture image
+
       String? capturedImagePath;
       try {
         capturedImagePath = await timeInHandler.captureTimeIn();
       } catch (e) {
         print("Error capturing image: $e");
-        // Continue without image if there's an error
       }
 
-      // Prepare request body
       final requestBody = {
         "employee_id": widget.employeeId,
         "location": currentLocation,
       };
 
-      // Only add image if it was successfully captured
       if (capturedImagePath != null) {
         requestBody["image"] = capturedImagePath;
       }
 
-      // Send POST request
       final response = await http.post(
         Uri.parse("http://127.0.0.1:8000/api/time-in/"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(requestBody),
       );
 
-      // Debug prints
       print("Response status: ${response.statusCode}");
       print("Response body: ${response.body}");
 
@@ -193,19 +181,17 @@ class _MainDashState extends State<MainDash> {
     }
 
     Position position = await Geolocator.getCurrentPosition();
-    // Return a formatted string of latitude and longitude
     return "${position.latitude}, ${position.longitude}";
   }
 
   Future<void> handleTimeOut() async {
     try {
-      // Check if user already has an active time entry for today
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       bool hasActiveEntry = attendanceList.any((entry) {
         String entryTimeIn = entry["time_in"] ?? "";
         return entry["name"] == widget.fullName &&
-               entry["time_out"] == "Not Yet Out" &&
-               entryTimeIn.contains(today);
+            entry["time_out"] == "Not Yet Out" &&
+            entryTimeIn.contains(today);
       });
 
       if (!hasActiveEntry) {
@@ -215,7 +201,6 @@ class _MainDashState extends State<MainDash> {
         return;
       }
 
-      // Send time-out request
       final response = await http.post(
         Uri.parse("http://127.0.0.1:8000/api/time-out/"),
         headers: {"Content-Type": "application/json"},
@@ -224,15 +209,13 @@ class _MainDashState extends State<MainDash> {
         }),
       );
 
-      print("Time out response: ${response.body}"); // Debug print
+      print("Time out response: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data["success"]) {
-          // Refresh the attendance list
           await Future.delayed(const Duration(milliseconds: 500));
           await fetchAttendanceList();
-          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Time out recorded successfully")),
           );
@@ -278,14 +261,12 @@ class _MainDashState extends State<MainDash> {
           fit: BoxFit.contain,
         ),
       ),
-      // Pass the user's full name to the AppDrawer here:
       drawer: AppDrawer(fullName: widget.fullName),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Live Camera Preview
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFF44336), width: 3),
@@ -301,7 +282,6 @@ class _MainDashState extends State<MainDash> {
               ),
             ),
             const SizedBox(height: 20),
-            // Current Time & Date
             Text(
               currentTime,
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
@@ -311,7 +291,6 @@ class _MainDashState extends State<MainDash> {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 20),
-            // Action Buttons: Time In, Time Out, File Leave
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -347,7 +326,9 @@ class _MainDashState extends State<MainDash> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => FileLeaveScreen(employeeId: widget.employeeId)),
+                      MaterialPageRoute(
+                        builder: (context) => FileLeaveScreen(employeeId: widget.employeeId),
+                      ),
                     );
                   },
                   child: const Text('File Leave', style: TextStyle(color: Colors.white)),
@@ -355,10 +336,10 @@ class _MainDashState extends State<MainDash> {
               ],
             ),
             const SizedBox(height: 20),
-            // Attendance List Header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(10),              decoration: const BoxDecoration(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(8), topRight: Radius.circular(8)),
@@ -370,7 +351,6 @@ class _MainDashState extends State<MainDash> {
                 ),
               ),
             ),
-            // Attendance List Table wrapped in scroll views
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
@@ -421,14 +401,13 @@ class _MainDashState extends State<MainDash> {
   }
 }
 
-// In your login_view.dart or wherever you handle login success
 void navigateToMainDash(BuildContext context, Map<String, dynamic> data) {
   Navigator.push(
     context,
     MaterialPageRoute(
       builder: (context) => MainDash(
         fullName: "${data["first_name"]} ${data["surname"]}",
-        employeeId: data["username"], // or however you receive the employee ID
+        employeeId: data["username"],
       ),
     ),
   );
