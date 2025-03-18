@@ -169,7 +169,7 @@ def submit_leave_request(request):
     try:
         user = CustomerUser.objects.get(employee_id=employee_id)
         
-        # Check for sufficient leave credits based on leave type.
+        # Check if the user has sufficient credits
         if leave_type.lower() == "sick leave":
             if user.sick_leave_credits < 1:
                 return JsonResponse({"success": False, "message": "Insufficient sick leave credits."})
@@ -177,7 +177,7 @@ def submit_leave_request(request):
             if user.leave_credits < 1:
                 return JsonResponse({"success": False, "message": "Insufficient leave credits."})
         
-        # Deduct one credit per submission
+        # Deduct 1 credit per submission based on the leave type
         if leave_type.lower() == "sick leave":
             user.sick_leave_credits -= 1
         else:
@@ -217,8 +217,11 @@ def leave_requests_view(request):
     if request.method != "GET":
         return JsonResponse({"success": False, "message": "Only GET requests are allowed"})
     try:
-        # Fetch all leave requests; you can modify this to filter per user if needed.
-        leave_requests = LeaveRequest.objects.all().order_by("-submitted_at")
+        employee_id = request.GET.get("employee_id")
+        if employee_id:
+            leave_requests = LeaveRequest.objects.filter(user__employee_id=employee_id).order_by("-submitted_at")
+        else:
+            leave_requests = LeaveRequest.objects.all().order_by("-submitted_at")
         data = []
         for leave in leave_requests:
             data.append({

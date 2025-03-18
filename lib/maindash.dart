@@ -14,10 +14,10 @@ class MainDash extends StatefulWidget {
   final String employeeId;
 
   const MainDash({
-    Key? key,
+    super.key,
     required this.fullName,
     required this.employeeId,
-  }) : super(key: key);
+  });
 
   @override
   State<MainDash> createState() => _MainDashState();
@@ -261,7 +261,7 @@ class _MainDashState extends State<MainDash> {
           fit: BoxFit.contain,
         ),
       ),
-      drawer: AppDrawer(fullName: widget.fullName),
+      drawer: AppDrawer(fullName: widget.fullName,   employeeId: widget.employeeId,),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(

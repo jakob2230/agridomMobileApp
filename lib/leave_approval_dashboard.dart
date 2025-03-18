@@ -4,7 +4,12 @@ import 'package:http/http.dart' as http;
 
 class LeaveApprovalDashboard extends StatefulWidget {
   final Map<String, dynamic>? newLeaveRequest;
-  const LeaveApprovalDashboard({Key? key, this.newLeaveRequest}) : super(key: key);
+  final String employeeId;
+  const LeaveApprovalDashboard({
+    Key? key,
+    this.newLeaveRequest,
+    required this.employeeId,
+  }) : super(key: key);
 
   @override
   _LeaveApprovalDashboardState createState() => _LeaveApprovalDashboardState();
@@ -16,28 +21,29 @@ class _LeaveApprovalDashboardState extends State<LeaveApprovalDashboard> {
   @override
   void initState() {
     super.initState();
+    // If a new leave request is passed, display it along with the rest from the API.
+    // You could also merge the newLeaveRequest into the fetched list.
     if (widget.newLeaveRequest != null) {
-      // Display only the newly submitted (pending) leave request.
       leaveApplications = [widget.newLeaveRequest!];
-    } else {
-      // Optionally, fetch from backend if no new request was passed.
-      fetchLeaveApplications();
     }
+    fetchLeaveApplications();
   }
 
   Future<void> fetchLeaveApplications() async {
     try {
-      final response = await http.get(Uri.parse("http://127.0.0.1:8000/api/leave-requests/"));
+      // Use the employeeId as a query parameter so that only this user's leave requests are returned.
+      final response = await http.get(Uri.parse(
+          "http://127.0.0.1:8000/api/leave-requests/?employee_id=${widget.employeeId}"));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
           leaveApplications = List<Map<String, dynamic>>.from(data["leaveRequests"]);
         });
       } else {
-        // Handle error if needed.
+        // Optionally handle errors.
       }
     } catch (e) {
-      // Handle error if needed.
+      // Optionally handle errors.
     }
   }
 
@@ -72,30 +78,31 @@ class _LeaveApprovalDashboardState extends State<LeaveApprovalDashboard> {
             const SizedBox(height: 20),
             // Display leave requests in a list.
             Expanded(
-              child: ListView.builder(
-                itemCount: leaveApplications.length,
-                itemBuilder: (context, index) {
-                  final app = leaveApplications[index];
-                  // Choose color based on status.
-                  Color statusColor = app['status'] == 'Approved'
-                      ? Colors.green
-                      : (app['status'] == 'Rejected' ? Colors.red : Colors.orange);
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      title: Text(app['leaveType'] ?? 'N/A'),
-                      subtitle: Text('Dates: ${app['startDate']} - ${app['endDate']}'),
-                      trailing: Text(
-                        app['status'] ?? 'Pending',
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              child: leaveApplications.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: leaveApplications.length,
+                      itemBuilder: (context, index) {
+                        final app = leaveApplications[index];
+                        Color statusColor = app['status'] == 'Approved'
+                            ? Colors.green
+                            : (app['status'] == 'Rejected' ? Colors.red : Colors.orange);
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            title: Text(app['leaveType'] ?? 'N/A'),
+                            subtitle: Text('Dates: ${app['startDate']} - ${app['endDate']}'),
+                            trailing: Text(
+                              app['status'] ?? 'Pending',
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : const Center(child: Text("No pending leave requests.")),
             ),
           ],
         ),

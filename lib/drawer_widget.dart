@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'main.dart'; // Ensure EmployeeLoginPage is exported from main.dart
-import 'leave_approval_dashboard.dart'; // If you have a separate file for LeaveApprovalDashboard
+import 'leave_approval_dashboard.dart';
 
 class AppDrawer extends StatelessWidget {
   final String fullName;
+  final String employeeId; // New parameter
 
   const AppDrawer({
     Key? key,
     required this.fullName,
+    required this.employeeId,
   }) : super(key: key);
 
   @override
@@ -43,7 +45,11 @@ class AppDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LeaveApprovalDashboard()),
+                  MaterialPageRoute(
+                    builder: (context) => LeaveApprovalDashboard(
+                      employeeId: employeeId, // Pass the correct employeeId
+                    ),
+                  ),
                 );
               },
             ),

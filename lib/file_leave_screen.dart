@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'leave_approval_dashboard.dart'; // This file should contain the dashboard that fetches data
 
 enum LeavePaymentOption { withPay, withoutPay }
 
@@ -14,10 +15,10 @@ class FileLeaveScreen extends StatefulWidget {
 }
 
 class _FileLeaveScreenState extends State<FileLeaveScreen> {
-  int remainingLeave = 16; 
+  int remainingLeave = 16;
   int totalLeaveCredits = 16;
   
-  int remainingSickLeave = 10; 
+  int remainingSickLeave = 10;
   int totalSickLeave = 10;
   
   String? selectedLeaveType;
@@ -109,7 +110,10 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => LeaveApprovalDashboard(newLeaveRequest: newLeaveRequest),
+              builder: (context) => LeaveApprovalDashboard(
+                newLeaveRequest: newLeaveRequest,
+                employeeId: widget.employeeId, // Pass employeeId here
+              ),
             ),
           );
         } else {
@@ -154,8 +158,8 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                   Text(
                     "Leave Credit score: $remainingLeave/$totalLeaveCredits",
                     style: const TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.bold, 
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                       color: Colors.red,
                     ),
                   ),
@@ -163,8 +167,8 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                   Text(
                     "Sick Leave Credit: $remainingSickLeave/$totalSickLeave",
                     style: const TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.bold, 
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                       color: Colors.red,
                     ),
                   ),
@@ -283,12 +287,10 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                 ),
                 onPressed: () {
-                  // Basic validation
                   if (selectedLeaveType != null &&
                       startDate != null &&
                       endDate != null &&
                       leavePaymentOption != null) {
-                    // For every submission, deduct only 1 credit regardless of the number of leave days.
                     if (selectedLeaveType == "Sick Leave") {
                       if (remainingSickLeave >= 1) {
                         setState(() {
@@ -323,23 +325,6 @@ class _FileLeaveScreenState extends State<FileLeaveScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Export LeaveApprovalDashboard widget
-class LeaveApprovalDashboard extends StatelessWidget {
-  final Map<String, dynamic> newLeaveRequest;
-
-  const LeaveApprovalDashboard({Key? key, required this.newLeaveRequest}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Leave Approval Dashboard')),
-      body: Center(
-        child: Text('New Leave Request: ${newLeaveRequest.toString()}'),
       ),
     );
   }
